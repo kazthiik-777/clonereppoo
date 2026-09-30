@@ -1,43 +1,64 @@
 pipeline {
     agent any
 
+    // Use Jenkins Global Tool Configuration if you configured NodeJS via Jenkins UI:
+    // tools {
+    //     nodejs 'NodeJS-20' // Uncomment if you configured NodeJS under Manage Jenkins > Tools
+    // }
+
     environment {
-        CI = 'true'
+        CI = 'true' // Prevents interactive prompts and ensures test runners (like Jest) exit automatically
     }
 
     options {
-        timeout(time: 30, unit: 'MINUTES')
+        timeout(time: 20, unit: 'MINUTES')
         disableConcurrentBuilds()
     }
 
     stages {
+        stage('Verify Environment') {
+            steps {
+                sh 'node -v'
+                sh 'npm -v'
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                echo 'Installing packages...'
+                // Use 'npm ci' if you have a package-lock.json (clean, reproducible install)
+                // Otherwise fallback to 'npm install'
+                sh 'npm ci || npm install'
+            }
+        }
+
         stage('Build') {
             steps {
-                echo 'Running build phase...'
-                // Replace with your project build command (e.g., sh 'npm run build' or sh 'mvn compile')
-                sh 'echo "Building project..."'
+                echo 'Building frontend/backend...'
+                // Runs the "build" script from your package.json (if present)
+                sh 'npm run build --if-present'
             }
         }
 
         stage('Test') {
             steps {
-                echo 'Running test phase...'
-                // Replace with your project test command (e.g., sh 'npm test' or sh 'mvn test')
-                sh 'echo "Testing project..."'
+                echo 'Executing test suite...'
+                // Runs tests in non-watch/CI mode; --if-present prevents failure if test script is empty
+                sh 'npm test --if-present -- --watchAll=false'
             }
         }
     }
 
     post {
         always {
-            echo 'Pipeline completed.'
+            echo 'Pipeline finished. Cleaning workspace...'
             cleanWs()
         }
         success {
-            echo 'Build and tests succeeded!'
+            echo 'Node.js build and tests passed successfully!'
         }
         failure {
-            echo 'Build or tests failed.'
+            echo 'Pipeline failed. Check the logs above for build or test errors.'
         }
     }
 }
