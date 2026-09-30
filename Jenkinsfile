@@ -1,58 +1,89 @@
 pipeline {
-    agent any
+agent any
 
-    tools {
-        nodejs 'nodejs-20'
+```
+tools {
+    nodejs 'nodejs-20'
+}
+
+environment {
+    CI = 'true'
+}
+
+options {
+    timeout(time: 20, unit: 'MINUTES')
+    disableConcurrentBuilds()
+}
+
+stages {
+
+    stage('Verify Environment') {
+        steps {
+            sh 'node -v'
+            sh 'npm -v'
+        }
     }
 
-    environment {
-        CI = 'true'
-    }
-
-    options {
-        timeout(time: 20, unit: 'MINUTES')
-        disableConcurrentBuilds()
-    }
-
-    stages {
-        stage('Verify Environment') {
-            steps {
-                sh 'node -v'
-                sh 'npm -v'
+    stage('Install Backend Dependencies') {
+        steps {
+            echo 'Installing backend dependencies...'
+            dir('backend') {
+                sh 'npm ci'
             }
         }
+    }
 
-        stage('Install Dependencies') {
-            steps {
-                sh 'npm install'
+    stage('Install Frontend Dependencies') {
+        steps {
+            echo 'Installing frontend dependencies...'
+            dir('frontend') {
+                sh 'npm ci'
             }
         }
+    }
 
-        stage('Build') {
-            steps {
+    stage('Build Frontend') {
+        steps {
+            echo 'Building frontend...'
+            dir('frontend') {
                 sh 'npm run build'
             }
         }
+    }
 
-        stage('Test') {
-            steps {
+    stage('Test Backend') {
+        steps {
+            echo 'Running backend tests...'
+            dir('backend') {
                 sh 'npm test'
             }
         }
     }
 
-    post {
-        always {
-            echo 'Pipeline finished. Cleaning workspace...'
-            cleanWs()
-        }
-
-        success {
-            echo 'Pipeline succeeded!'
-        }
-
-        failure {
-            echo 'Pipeline failed. Check the logs above.'
+    stage('Test Frontend') {
+        steps {
+            echo 'Running frontend checks...'
+            dir('frontend') {
+                sh 'npm run lint'
+            }
         }
     }
+}
+
+post {
+    always {
+        echo 'Pipeline finished. Cleaning workspace...'
+        cleanWs()
+    }
+
+    success {
+        echo 'Build and tests succeeded!'
+    }
+
+    failure {
+        echo 'Pipeline failed. Check the logs above.'
+    }
+}
+```
+
 }
