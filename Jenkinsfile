@@ -62,7 +62,7 @@ stages {
 
     stage('Test Frontend') {
         steps {
-            echo 'Running frontend checks...'
+            echo 'Running frontend lint...'
             dir('frontend') {
                 sh 'npm run lint'
             }
@@ -87,3 +87,4 @@ post {
 ```
 
 }
+
